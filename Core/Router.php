@@ -41,17 +41,36 @@ class Router {
    * @param string $url
    * @return boolean
    */
-  public function match($url) {
-    // @TODO Why not just match and return a boolean of the match.
-    foreach ($this->routes as $route => $params) {
-      if ($url == $route) {
-        // Needed?
-        $this->params = $params;
-        return true;
-      }
+    public function match($url)
+    {
+        /*
+        foreach ($this->routes as $route => $params) {
+            if ($url == $route) {
+                $this->params = $params;
+                return true;
+            }
+        }
+        */
+
+        // Match to the fixed URL format /controller/action
+        $reg_exp = "/^(?P<controller>[a-z-]+)\/(?P<action>[a-z-]+)$/";
+
+        if (preg_match($reg_exp, $url, $matches)) {
+            // Get named capture group values
+            $params = [];
+
+            foreach ($matches as $key => $match) {
+                if (is_string($key)) {
+                    $params[$key] = $match;
+                }
+            }
+
+            $this->params = $params;
+            return true;
+        }
+
+        return false;
     }
-    return false;
-  }
   
   
   /**
