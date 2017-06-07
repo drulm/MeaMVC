@@ -3,6 +3,12 @@
  * A front controller.
  */
 
+// Require the controller class
+require '../App/Controllers/Posts.php';
+
+/**
+ * Routing
+ */
 require '../Core/Router.php';
 
 // @TODO - make a config file for these.
