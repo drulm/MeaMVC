@@ -1,5 +1,7 @@
 <?php
 
+namespace Core;
+
 /**
  * A basic router class.
  */
@@ -10,50 +12,52 @@ define('DEBUG2',false);
 
 class Router {
   
-  // Array of routes.
-  protected $routes = [];
-  
-  // Array of parameters, controller => to action.
-  protected $params = [];
+    // Array of routes.
+    protected $routes = [];
 
-  /**
-   * Add to the routing table a new route.
-   * 
-   * @param string $route : The URL or route
-   * @param array $params : the parameters - controller / action
-   * 
-   * return void
-   */
-public function add($route, $params = [])
-  {
-      // Convert the route to a regular expression: escape forward slashes
-      $route = preg_replace('/\//', '\\/', $route);
-      // Convert variables e.g. {controller}
-      $route = preg_replace('/\{([a-z]+)\}/', '(?P<\1>[a-z-]+)', $route);
-      // Convert variables with custom regular expressions e.g. {id:\d+}
-      $route = preg_replace('/\{([a-z]+):([^\}]+)\}/', '(?P<\1>\2)', $route);
-      // Add start and end delimiters, and case insensitive flag
-      $route = '/^' . $route . '$/i';
-      $this->routes[$route] = $params;
-  }
+    // Array of parameters, controller => to action.
+    protected $params = [];
 
+    /**
+     * Add to the routing table a new route.
+     *
+     * @param string $route : The URL or route
+     * @param array $params : the parameters - controller / action
+     *
+     * return void
+     */
+    public function add($route, $params = [])
+    {
+        // Convert the route to a regular expression: escape forward slashes
+        $route = preg_replace('/\//', '\\/', $route);
+        // Convert variables e.g. {controller}
+        $route = preg_replace('/\{([a-z]+)\}/', '(?P<\1>[a-z-]+)', $route);
+        // Convert variables with custom regular expressions e.g. {id:\d+}
+        $route = preg_replace('/\{([a-z]+):([^\}]+)\}/', '(?P<\1>\2)', $route);
+        // Add start and end delimiters, and case insensitive flag
+        $route = '/^' . $route . '$/i';
+        $this->routes[$route] = $params;
+    }
 
-  /**
-   * Return the routing table array.
-   * @return array
-   */
-  public function getRoutes() {
-    return $this->routes;
-  }
-  
-  
-  /**
-   * Finds a url match in routing table and sets the parameter array if true.
-   * Check if this needs re-written.
-   * 
-   * @param string $url
-   * @return boolean
-   */
+    
+    /**
+     * Get all the routes from the routing table
+     *
+     * @return array
+     */
+    public function getRoutes() {
+        return $this->routes;
+    }
+
+    
+    /**
+     * Match the route to the routes in the routing table, setting the $params
+     * property if a route is found.
+     *
+     * @param string $url The route URL
+     *
+     * @return boolean  true if a match found, false otherwise
+     */
     public function match($url)
     {
         foreach ($this->routes as $route => $params) {
@@ -70,31 +74,31 @@ public function add($route, $params = [])
         }
         return false;
     }
-  
-  
-  /**
-   * Return the parameters array for the route.
-   * 
-   * @return array
-   */
-  public function getParams() {
-    return $this->params;
-  }
-  
-  
-  /**
-   * Dispatch the route, creating the controller object and running the
-   * action method
-   *
-   * @param string $url The route URL
-   *
-   * @return void
-   */
+
+    
+    /**
+     * Return the parameters array for the route.
+     *
+     * @return array
+     */
+    public function getParams() {
+        return $this->params;
+    }
+
+    /**
+     * Dispatch the route, creating the controller object and running the
+     * action method
+     *
+     * @param string $url The route URL
+     *
+     * @return void
+     */
     public function dispatch($url)
-    {
+    {   
         if ($this->match($url)) {
             $controller = $this->params['controller'];
             $controller = $this->convertToStudlyCaps($controller);
+            $controller = "App\Controllers\\$controller";
 
             if (class_exists($controller)) {
                 $controller_object = new $controller();
@@ -142,7 +146,3 @@ public function add($route, $params = [])
         return lcfirst($this->convertToStudlyCaps($string));
     }
 }
-  
-  
-
-

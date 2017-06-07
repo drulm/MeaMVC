@@ -1,8 +1,9 @@
 <?php
 
+namespace App\Controllers;
+
 /**
  * Posts controller
- *
  */
 class Posts
 {
@@ -26,5 +27,4 @@ class Posts
     {
         echo 'Hello from the addNew action in the Posts controller!';
     }
-    
 }
