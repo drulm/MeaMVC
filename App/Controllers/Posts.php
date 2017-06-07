@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 /**
  * Posts controller
+ *
+ * PHP version 5.4
  */
 class Posts
 {
@@ -16,6 +18,8 @@ class Posts
     public function index()
     {
         echo 'Hello from the index action in the Posts controller!';
+        echo '<p>Query string parameters: <pre>' .
+             htmlspecialchars(print_r($_GET, true)) . '</pre></p>';
     }
 
     /**

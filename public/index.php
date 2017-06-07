@@ -4,10 +4,6 @@
  */
 
 
-// @TODO - make a config file for these.
-// Debug mode
-define('DEBUG',true);
-
 // Require the controller class
 //require '../App/Controllers/Posts.php';
 
