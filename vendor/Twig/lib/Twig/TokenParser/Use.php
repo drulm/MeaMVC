@@ -3,7 +3,7 @@
 /*
  * This file is part of Twig.
  *
- * (c) Fabien Potencier
+ * (c) 2011 Fabien Potencier
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -23,7 +23,7 @@
  *
  * @see http://www.twig-project.org/doc/templates.html#horizontal-reuse for details.
  */
-final class Twig_TokenParser_Use extends Twig_TokenParser
+class Twig_TokenParser_Use extends Twig_TokenParser
 {
     public function parse(Twig_Token $token)
     {
@@ -31,7 +31,7 @@ final class Twig_TokenParser_Use extends Twig_TokenParser
         $stream = $this->parser->getStream();
 
         if (!$template instanceof Twig_Node_Expression_Constant) {
-            throw new Twig_Error_Syntax('The template references in a "use" statement must be a string.', $stream->getCurrent()->getLine(), $stream->getSourceContext());
+            throw new Twig_Error_Syntax('The template references in a "use" statement must be a string.', $stream->getCurrent()->getLine(), $stream->getFilename());
         }
 
         $targets = array();
@@ -62,5 +62,3 @@ final class Twig_TokenParser_Use extends Twig_TokenParser
         return 'use';
     }
 }
-
-class_alias('Twig_TokenParser_Use', 'Twig\TokenParser\UseTokenParser', false);

@@ -3,7 +3,7 @@
 /*
  * This file is part of Twig.
  *
- * (c) Fabien Potencier
+ * (c) 2009 Fabien Potencier
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -14,13 +14,13 @@
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-final class Twig_Sandbox_SecurityPolicy implements Twig_Sandbox_SecurityPolicyInterface
+class Twig_Sandbox_SecurityPolicy implements Twig_Sandbox_SecurityPolicyInterface
 {
-    private $allowedTags;
-    private $allowedFilters;
-    private $allowedMethods;
-    private $allowedProperties;
-    private $allowedFunctions;
+    protected $allowedTags;
+    protected $allowedFilters;
+    protected $allowedMethods;
+    protected $allowedProperties;
+    protected $allowedFunctions;
 
     public function __construct(array $allowedTags = array(), array $allowedFilters = array(), array $allowedMethods = array(), array $allowedProperties = array(), array $allowedFunctions = array())
     {
@@ -82,7 +82,7 @@ final class Twig_Sandbox_SecurityPolicy implements Twig_Sandbox_SecurityPolicyIn
 
     public function checkMethodAllowed($obj, $method)
     {
-        if ($obj instanceof Twig_Template || $obj instanceof Twig_Markup) {
+        if ($obj instanceof Twig_TemplateInterface || $obj instanceof Twig_Markup) {
             return true;
         }
 
@@ -97,8 +97,7 @@ final class Twig_Sandbox_SecurityPolicy implements Twig_Sandbox_SecurityPolicyIn
         }
 
         if (!$allowed) {
-            $class = get_class($obj);
-            throw new Twig_Sandbox_SecurityNotAllowedMethodError(sprintf('Calling "%s" method on a "%s" object is not allowed.', $method, $class), $class, $method);
+            throw new Twig_Sandbox_SecurityError(sprintf('Calling "%s" method on a "%s" object is not allowed.', $method, get_class($obj)));
         }
     }
 
@@ -114,10 +113,7 @@ final class Twig_Sandbox_SecurityPolicy implements Twig_Sandbox_SecurityPolicyIn
         }
 
         if (!$allowed) {
-            $class = get_class($obj);
-            throw new Twig_Sandbox_SecurityNotAllowedPropertyError(sprintf('Calling "%s" property on a "%s" object is not allowed.', $property, $class), $class, $property);
+            throw new Twig_Sandbox_SecurityError(sprintf('Calling "%s" property on a "%s" object is not allowed.', $property, get_class($obj)));
         }
     }
 }
-
-class_alias('Twig_Sandbox_SecurityPolicy', 'Twig\Sandbox\SecurityPolicy', false);

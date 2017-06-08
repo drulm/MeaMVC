@@ -3,7 +3,7 @@
 /*
  * This file is part of Twig.
  *
- * (c) Fabien Potencier
+ * (c) 2009 Fabien Potencier
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -11,8 +11,23 @@
 
 /**
  * Marks a section of a template to be escaped or not.
+ *
+ * <pre>
+ * {% autoescape true %}
+ *   Everything will be automatically escaped in this block
+ * {% endautoescape %}
+ *
+ * {% autoescape false %}
+ *   Everything will be outputed as is in this block
+ * {% endautoescape %}
+ *
+ * {% autoescape true js %}
+ *   Everything will be automatically escaped in this block
+ *   using the js escaping strategy
+ * {% endautoescape %}
+ * </pre>
  */
-final class Twig_TokenParser_AutoEscape extends Twig_TokenParser
+class Twig_TokenParser_AutoEscape extends Twig_TokenParser
 {
     public function parse(Twig_Token $token)
     {
@@ -24,9 +39,25 @@ final class Twig_TokenParser_AutoEscape extends Twig_TokenParser
         } else {
             $expr = $this->parser->getExpressionParser()->parseExpression();
             if (!$expr instanceof Twig_Node_Expression_Constant) {
-                throw new Twig_Error_Syntax('An escaping strategy must be a string or false.', $stream->getCurrent()->getLine(), $stream->getSourceContext());
+                throw new Twig_Error_Syntax('An escaping strategy must be a string or a bool.', $stream->getCurrent()->getLine(), $stream->getFilename());
             }
             $value = $expr->getAttribute('value');
+
+            $compat = true === $value || false === $value;
+
+            if (true === $value) {
+                $value = 'html';
+            }
+
+            if ($compat && $stream->test(Twig_Token::NAME_TYPE)) {
+                @trigger_error('Using the autoescape tag with "true" or "false" before the strategy name is deprecated.', E_USER_DEPRECATED);
+
+                if (false === $value) {
+                    throw new Twig_Error_Syntax('Unexpected escaping strategy as you set autoescaping to false.', $stream->getCurrent()->getLine(), $stream->getFilename());
+                }
+
+                $value = $stream->next()->getValue();
+            }
         }
 
         $stream->expect(Twig_Token::BLOCK_END_TYPE);
@@ -46,5 +77,3 @@ final class Twig_TokenParser_AutoEscape extends Twig_TokenParser
         return 'autoescape';
     }
 }
-
-class_alias('Twig_TokenParser_AutoEscape', 'Twig\TokenParser\AutoEscapeTokenParser', false);

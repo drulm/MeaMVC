@@ -7,6 +7,13 @@
  */
 
 /**
+ * Twig
+ */
+require_once dirname(__DIR__) . '/vendor/Twig/lib/Twig/Autoloader.php';
+Twig_Autoloader::register();
+
+
+/**
  * Autoloader
  */
 spl_autoload_register(function ($class) {

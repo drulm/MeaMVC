@@ -3,7 +3,7 @@
 /*
  * This file is part of Twig.
  *
- * (c) Fabien Potencier
+ * (c) 2010 Fabien Potencier
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -24,12 +24,8 @@
  */
 class Twig_Error_Loader extends Twig_Error
 {
-    public function __construct($message, $lineno = -1, $source = null, Exception $previous = null)
+    public function __construct($message, $lineno = -1, $filename = null, Exception $previous = null)
     {
-        Exception::__construct('', 0, $previous);
-        $this->appendMessage($message);
-        $this->setTemplateLine(false);
+        parent::__construct($message, false, false, $previous);
     }
 }
-
-class_alias('Twig_Error_Loader', 'Twig\Error\LoaderError', false);

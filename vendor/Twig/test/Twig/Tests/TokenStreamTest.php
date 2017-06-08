@@ -13,7 +13,7 @@ class Twig_Tests_TokenStreamTest extends PHPUnit_Framework_TestCase
 {
     protected static $tokens;
 
-    protected function setUp()
+    public function setUp()
     {
         self::$tokens = array(
             new Twig_Token(Twig_Token::TEXT_TYPE, 1, 1),
@@ -40,8 +40,8 @@ class Twig_Tests_TokenStreamTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException        Twig_Error_Syntax
-     * @expectedExceptionMessage Unexpected end of template
+     * @expectedException Twig_Error_Syntax
+     * @expectedMessage   Unexpected end of template
      */
     public function testEndOfTemplateNext()
     {
@@ -54,8 +54,8 @@ class Twig_Tests_TokenStreamTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException        Twig_Error_Syntax
-     * @expectedExceptionMessage Unexpected end of template
+     * @expectedException Twig_Error_Syntax
+     * @expectedMessage   Unexpected end of template
      */
     public function testEndOfTemplateLook()
     {

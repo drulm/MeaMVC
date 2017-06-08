@@ -3,15 +3,14 @@
 /*
  * This file is part of Twig.
  *
- * (c) Fabien Potencier
+ * (c) 2010 Fabien Potencier
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
-final class Twig_Extension_Optimizer extends Twig_Extension
+class Twig_Extension_Optimizer extends Twig_Extension
 {
-    private $optimizers;
+    protected $optimizers;
 
     public function __construct($optimizers = -1)
     {
@@ -22,6 +21,9 @@ final class Twig_Extension_Optimizer extends Twig_Extension
     {
         return array(new Twig_NodeVisitor_Optimizer($this->optimizers));
     }
-}
 
-class_alias('Twig_Extension_Optimizer', 'Twig\Extension\OptimizerExtension', false);
+    public function getName()
+    {
+        return 'optimizer';
+    }
+}

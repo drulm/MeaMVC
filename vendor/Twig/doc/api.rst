@@ -21,7 +21,8 @@ are in use.
 The simplest way to configure Twig to load templates for your application
 looks roughly like this::
 
-    require_once '/path/to/vendor/autoload.php';
+    require_once '/path/to/lib/Twig/Autoloader.php';
+    Twig_Autoloader::register();
 
     $loader = new Twig_Loader_Filesystem('/path/to/templates');
     $twig = new Twig_Environment($loader, array(
@@ -42,13 +43,10 @@ templates from a database or other resources.
     the evaluated templates. For such a need, you can use any available PHP
     cache library.
 
-Rendering Templates
--------------------
+To load a template from this environment you just have to call the
+``loadTemplate()`` method which then returns a ``Twig_Template`` instance::
 
-To load a template from a Twig environment, call the ``load()`` method which
-returns a ``Twig_TemplateWrapper`` instance::
-
-    $template = $twig->load('index.html');
+    $template = $twig->loadTemplate('index.html');
 
 To render the template with some variables, call the ``render()`` method::
 
@@ -61,11 +59,6 @@ To render the template with some variables, call the ``render()`` method::
 You can also load and render the template in one fell swoop::
 
     echo $twig->render('index.html', array('the' => 'variables', 'go' => 'here'));
-
-If a template defines blocks, they can be rendered individually via the
-``renderBlock()`` call::
-
-    echo $template->renderBlock('block_name', array('the' => 'variables', 'go' => 'here'));
 
 .. _environment_options:
 
@@ -85,16 +78,16 @@ The following options are available:
   ``__toString()`` method that you can use to display the generated nodes
   (default to ``false``).
 
-* ``charset`` *string* (defaults to ``utf-8``)
+* ``charset`` *string (default to ``utf-8``)*
 
   The charset used by the templates.
 
-* ``base_template_class`` *string* (defaults to ``Twig_Template``)
+* ``base_template_class`` *string (default to ``Twig_Template``)*
 
   The base template class to use for generated
   templates.
 
-* ``cache`` *string* or ``false``
+* ``cache`` *string|false*
 
   An absolute path where to store the compiled templates, or
   ``false`` to disable caching (which is the default).
@@ -113,16 +106,23 @@ The following options are available:
   replace them with a ``null`` value. When set to ``true``, Twig throws an
   exception instead (default to ``false``).
 
-* ``autoescape`` *string*
+* ``autoescape`` *string|boolean*
 
-  Sets the default auto-escaping strategy (``name``, ``html``, ``js``, ``css``,
-  ``url``, ``html_attr``, or a PHP callback that takes the template "filename"
-  and returns the escaping strategy to use -- the callback cannot be a function
-  name to avoid collision with built-in escaping strategies); set it to
-  ``false`` to disable auto-escaping. The ``name`` escaping strategy determines
-  the escaping strategy to use for a template based on the template filename
-  extension (this strategy does not incur any overhead at runtime as
-  auto-escaping is done at compilation time.)
+  If set to ``true``, HTML auto-escaping will be enabled by
+  default for all templates (default to ``true``).
+
+  As of Twig 1.8, you can set the escaping strategy to use (``html``, ``js``,
+  ``false`` to disable).
+
+  As of Twig 1.9, you can set the escaping strategy to use (``css``, ``url``,
+  ``html_attr``, or a PHP callback that takes the template "filename" and must
+  return the escaping strategy to use -- the callback cannot be a function name
+  to avoid collision with built-in escaping strategies).
+
+  As of Twig 1.17, the ``filename`` escaping strategy determines the escaping
+  strategy to use for a template based on the template filename extension (this
+  strategy does not incur any overhead at runtime as auto-escaping is done at
+  compilation time.)
 
 * ``optimizations`` *integer*
 
@@ -152,6 +152,9 @@ Here is a list of the built-in loaders Twig provides:
 
 ``Twig_Loader_Filesystem``
 ..........................
+
+.. versionadded:: 1.10
+    The ``prependPath()`` and support for namespaces were added in Twig 1.10.
 
 ``Twig_Loader_Filesystem`` loads templates from the file system. This loader
 can find templates in folders on the file system and is the preferred way to
@@ -187,18 +190,6 @@ Namespaced templates can be accessed via the special
 
     $twig->render('@admin/index.html', array());
 
-``Twig_Loader_Filesystem`` support absolute and relative paths. Using relative
-paths is preferred as it makes the cache keys independent of the project root
-directory (for instance, it allows warming the cache from a build server where
-the directory might be different from the one used on production servers)::
-
-    $loader = new Twig_Loader_Filesystem('templates', getcwd().'/..');
-
-.. note::
-
-    When not passing the root path as a second argument, Twig uses ``getcwd()``
-    for relative paths.
-
 ``Twig_Loader_Array``
 .....................
 
@@ -217,7 +208,7 @@ projects where storing all templates in a single PHP file might make sense.
 
 .. tip::
 
-    When using the ``Array`` loader with a cache mechanism, you
+    When using the ``Array`` or ``String`` loaders with a cache mechanism, you
     should know that a new cache key is generated each time a template content
     "changes" (the cache key being the source code of the template). If you
     don't want to see your cache grows out of control, you need to take care
@@ -260,53 +251,39 @@ All loaders implement the ``Twig_LoaderInterface``::
     interface Twig_LoaderInterface
     {
         /**
-         * Returns the source context for a given template logical name.
+         * Gets the source code of a template, given its name.
          *
-         * @param string $name The template logical name
+         * @param  string $name string The name of the template to load
          *
-         * @return Twig_Source
-         *
-         * @throws Twig_Error_Loader When $name is not found
+         * @return string The template source code
          */
-        public function getSourceContext($name);
+        function getSource($name);
 
         /**
          * Gets the cache key to use for the cache for a given template name.
          *
-         * @param string $name The name of the template to load
+         * @param  string $name string The name of the template to load
          *
          * @return string The cache key
-         *
-         * @throws Twig_Error_Loader When $name is not found
          */
-        public function getCacheKey($name);
+        function getCacheKey($name);
 
         /**
          * Returns true if the template is still fresh.
          *
          * @param string    $name The template name
          * @param timestamp $time The last modification time of the cached template
-         *
-         * @return bool    true if the template is fresh, false otherwise
-         *
-         * @throws Twig_Error_Loader When $name is not found
          */
-        public function isFresh($name, $time);
-
-        /**
-         * Check if we have the source code of a template, given its name.
-         *
-         * @param string $name The name of the template to check if we can load
-         *
-         * @return bool    If the template source code is handled by this loader or not
-         */
-        public function exists($name);
+        function isFresh($name, $time);
     }
 
 The ``isFresh()`` method must return ``true`` if the current cached template
 is still fresh, given the last modification time, or ``false`` otherwise.
 
-The ``getSourceContext()`` method must return an instance of ``Twig_Source``.
+.. tip::
+
+    As of Twig 1.11.0, you can also implement ``Twig_ExistsLoaderInterface``
+    to make your loader faster when used with the chain loader.
 
 Using Extensions
 ----------------
@@ -326,7 +303,8 @@ Twig comes bundled with the following extensions:
 * *Twig_Extension_Sandbox*: Adds a sandbox mode to the default Twig
   environment, making it safe to evaluate untrusted code.
 
-* *Twig_Extension_Profiler*: Enabled the built-in Twig profiler.
+* *Twig_Extension_Profiler*: Enabled the built-in Twig profiler (as of Twig
+  1.18).
 
 * *Twig_Extension_Optimizer*: Optimizes the node tree before compilation.
 
@@ -372,7 +350,9 @@ escaping strategy), except those using the ``raw`` filter:
 
     {{ article.to_html|raw }}
 
-You can also change the escaping mode locally by using the ``autoescape`` tag:
+You can also change the escaping mode locally by using the ``autoescape`` tag
+(see the :doc:`autoescape<tags/autoescape>` doc for the syntax used before
+Twig 1.8):
 
 .. code-block:: jinja
 
@@ -496,6 +476,9 @@ the extension constructor::
 
 Profiler Extension
 ~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.18
+    The Profile extension was added in Twig 1.18.
 
 The ``profiler`` extension enables a profiler for Twig templates; it should
 only be used on your development machines as it adds some overhead::

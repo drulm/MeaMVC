@@ -3,17 +3,16 @@
 /*
  * This file is part of Twig.
  *
- * (c) Fabien Potencier
+ * (c) 2009 Fabien Potencier
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
-final class Twig_Extension_Sandbox extends Twig_Extension
+class Twig_Extension_Sandbox extends Twig_Extension
 {
-    private $sandboxedGlobally;
-    private $sandboxed;
-    private $policy;
+    protected $sandboxedGlobally;
+    protected $sandboxed;
+    protected $policy;
 
     public function __construct(Twig_Sandbox_SecurityPolicyInterface $policy, $sandboxed = false)
     {
@@ -90,6 +89,9 @@ final class Twig_Extension_Sandbox extends Twig_Extension
 
         return $obj;
     }
-}
 
-class_alias('Twig_Extension_Sandbox', 'Twig\Extension\SandboxExtension', false);
+    public function getName()
+    {
+        return 'sandbox';
+    }
+}

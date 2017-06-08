@@ -3,7 +3,7 @@
 /*
  * This file is part of Twig.
  *
- * (c) Fabien Potencier
+ * (c) 2011 Fabien Potencier
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -12,7 +12,7 @@
 /**
  * Evaluates an expression, discarding the returned value.
  */
-final class Twig_TokenParser_Do extends Twig_TokenParser
+class Twig_TokenParser_Do extends Twig_TokenParser
 {
     public function parse(Twig_Token $token)
     {
@@ -28,5 +28,3 @@ final class Twig_TokenParser_Do extends Twig_TokenParser
         return 'do';
     }
 }
-
-class_alias('Twig_TokenParser_Do', 'Twig\TokenParser\DoTokenParser', false);

@@ -3,8 +3,8 @@
 /*
  * This file is part of Twig.
  *
- * (c) Fabien Potencier
- * (c) Armin Ronacher
+ * (c) 2009 Fabien Potencier
+ * (c) 2009 Armin Ronacher
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -15,25 +15,36 @@
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-class Twig_Parser
+class Twig_Parser implements Twig_ParserInterface
 {
-    private $stack = array();
-    private $stream;
-    private $parent;
-    private $handlers;
-    private $visitors;
-    private $expressionParser;
-    private $blocks;
-    private $blockStack;
-    private $macros;
-    private $env;
-    private $importedSymbols;
-    private $traits;
-    private $embeddedTemplates = array();
+    protected $stack = array();
+    protected $stream;
+    protected $parent;
+    protected $handlers;
+    protected $visitors;
+    protected $expressionParser;
+    protected $blocks;
+    protected $blockStack;
+    protected $macros;
+    protected $env;
+    protected $reservedMacroNames;
+    protected $importedSymbols;
+    protected $traits;
+    protected $embeddedTemplates = array();
 
+    /**
+     * Constructor.
+     *
+     * @param Twig_Environment $env A Twig_Environment instance
+     */
     public function __construct(Twig_Environment $env)
     {
         $this->env = $env;
+    }
+
+    public function getEnvironment()
+    {
+        return $this->env;
     }
 
     public function getVarName()
@@ -41,20 +52,25 @@ class Twig_Parser
         return sprintf('__internal_%s', hash('sha256', uniqid(mt_rand(), true), false));
     }
 
+    public function getFilename()
+    {
+        return $this->stream->getFilename();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function parse(Twig_TokenStream $stream, $test = null, $dropNeedle = false)
     {
+        // push all variables into the stack to keep the current state of the parser
         $vars = get_object_vars($this);
         unset($vars['stack'], $vars['env'], $vars['handlers'], $vars['visitors'], $vars['expressionParser'], $vars['reservedMacroNames']);
         $this->stack[] = $vars;
 
         // tag handlers
         if (null === $this->handlers) {
-            $this->handlers = array();
-            foreach ($this->env->getTokenParsers() as $handler) {
-                $handler->setParser($this);
-
-                $this->handlers[$handler->getTag()] = $handler;
-            }
+            $this->handlers = $this->env->getTokenParsers();
+            $this->handlers->setParser($this);
         }
 
         // node visitors
@@ -63,7 +79,7 @@ class Twig_Parser
         }
 
         if (null === $this->expressionParser) {
-            $this->expressionParser = new Twig_ExpressionParser($this, $this->env);
+            $this->expressionParser = new Twig_ExpressionParser($this, $this->env->getUnaryOperators(), $this->env->getBinaryOperators());
         }
 
         $this->stream = $stream;
@@ -82,8 +98,8 @@ class Twig_Parser
                 $body = new Twig_Node();
             }
         } catch (Twig_Error_Syntax $e) {
-            if (!$e->getSourceContext()) {
-                $e->setSourceContext($this->stream->getSourceContext());
+            if (!$e->getTemplateFile()) {
+                $e->setTemplateFile($this->getFilename());
             }
 
             if (!$e->getTemplateLine()) {
@@ -93,7 +109,7 @@ class Twig_Parser
             throw $e;
         }
 
-        $node = new Twig_Node_Module(new Twig_Node_Body(array($body)), $this->parent, new Twig_Node($this->blocks), new Twig_Node($this->macros), new Twig_Node($this->traits), $this->embeddedTemplates, $stream->getSourceContext());
+        $node = new Twig_Node_Module(new Twig_Node_Body(array($body)), $this->parent, new Twig_Node($this->blocks), new Twig_Node($this->macros), new Twig_Node($this->traits), $this->embeddedTemplates, $this->getFilename());
 
         $traverser = new Twig_NodeTraverser($this->env, $this->visitors);
 
@@ -130,10 +146,10 @@ class Twig_Parser
                     $token = $this->getCurrentToken();
 
                     if ($token->getType() !== Twig_Token::NAME_TYPE) {
-                        throw new Twig_Error_Syntax('A block must start with a tag name.', $token->getLine(), $this->stream->getSourceContext());
+                        throw new Twig_Error_Syntax('A block must start with a tag name.', $token->getLine(), $this->getFilename());
                     }
 
-                    if (null !== $test && $test($token)) {
+                    if (null !== $test && call_user_func($test, $token)) {
                         if ($dropNeedle) {
                             $this->stream->next();
                         }
@@ -145,15 +161,16 @@ class Twig_Parser
                         return new Twig_Node($rv, array(), $lineno);
                     }
 
-                    if (!isset($this->handlers[$token->getValue()])) {
+                    $subparser = $this->handlers->getTokenParser($token->getValue());
+                    if (null === $subparser) {
                         if (null !== $test) {
-                            $e = new Twig_Error_Syntax(sprintf('Unexpected "%s" tag', $token->getValue()), $token->getLine(), $this->stream->getSourceContext());
+                            $e = new Twig_Error_Syntax(sprintf('Unexpected "%s" tag', $token->getValue()), $token->getLine(), $this->getFilename());
 
                             if (is_array($test) && isset($test[0]) && $test[0] instanceof Twig_TokenParserInterface) {
                                 $e->appendMessage(sprintf(' (expecting closing tag for the "%s" tag defined near line %s).', $test[0]->getTag(), $lineno));
                             }
                         } else {
-                            $e = new Twig_Error_Syntax(sprintf('Unknown "%s" tag.', $token->getValue()), $token->getLine(), $this->stream->getSourceContext());
+                            $e = new Twig_Error_Syntax(sprintf('Unknown "%s" tag.', $token->getValue()), $token->getLine(), $this->getFilename());
                             $e->addSuggestions($token->getValue(), array_keys($this->env->getTags()));
                         }
 
@@ -162,7 +179,6 @@ class Twig_Parser
 
                     $this->stream->next();
 
-                    $subparser = $this->handlers[$token->getValue()];
                     $node = $subparser->parse($token);
                     if (null !== $node) {
                         $rv[] = $node;
@@ -170,7 +186,7 @@ class Twig_Parser
                     break;
 
                 default:
-                    throw new Twig_Error_Syntax('Lexer or parser ended up in unsupported state.', $this->getCurrentToken()->getLine(), $this->stream->getSourceContext());
+                    throw new Twig_Error_Syntax('Lexer or parser ended up in unsupported state.', 0, $this->getFilename());
             }
         }
 
@@ -179,6 +195,16 @@ class Twig_Parser
         }
 
         return new Twig_Node($rv, array(), $lineno);
+    }
+
+    public function addHandler($name, $class)
+    {
+        $this->handlers[$name] = $class;
+    }
+
+    public function addNodeVisitor(Twig_NodeVisitorInterface $visitor)
+    {
+        $this->visitors[] = $visitor;
     }
 
     public function getBlockStack()
@@ -213,7 +239,7 @@ class Twig_Parser
 
     public function setBlock($name, Twig_Node_Block $value)
     {
-        $this->blocks[$name] = new Twig_Node_Body(array($value), array(), $value->getTemplateLine());
+        $this->blocks[$name] = new Twig_Node_Body(array($value), array(), $value->getLine());
     }
 
     public function hasMacro($name)
@@ -223,12 +249,28 @@ class Twig_Parser
 
     public function setMacro($name, Twig_Node_Macro $node)
     {
+        if ($this->isReservedMacroName($name)) {
+            throw new Twig_Error_Syntax(sprintf('"%s" cannot be used as a macro name as it is a reserved keyword.', $name), $node->getLine(), $this->getFilename());
+        }
+
         $this->macros[$name] = $node;
     }
 
     public function isReservedMacroName($name)
     {
-        return false;
+        if (null === $this->reservedMacroNames) {
+            $this->reservedMacroNames = array();
+            $r = new ReflectionClass($this->env->getBaseTemplateClass());
+            foreach ($r->getMethods() as $method) {
+                $methodName = strtolower($method->getName());
+
+                if ('get' === substr($methodName, 0, 3) && isset($methodName[3])) {
+                    $this->reservedMacroNames[] = substr($methodName, 3);
+                }
+            }
+        }
+
+        return in_array(strtolower($name), $this->reservedMacroNames);
     }
 
     public function addTrait($trait)
@@ -278,7 +320,9 @@ class Twig_Parser
     }
 
     /**
-     * @return Twig_ExpressionParser
+     * Gets the expression parser.
+     *
+     * @return Twig_ExpressionParser The expression parser
      */
     public function getExpressionParser()
     {
@@ -296,7 +340,9 @@ class Twig_Parser
     }
 
     /**
-     * @return Twig_TokenStream
+     * Gets the token stream.
+     *
+     * @return Twig_TokenStream The token stream
      */
     public function getStream()
     {
@@ -304,14 +350,16 @@ class Twig_Parser
     }
 
     /**
-     * @return Twig_Token
+     * Gets the current token.
+     *
+     * @return Twig_Token The current token
      */
     public function getCurrentToken()
     {
         return $this->stream->getCurrent();
     }
 
-    private function filterBodyNodes(Twig_Node $node)
+    protected function filterBodyNodes(Twig_NodeInterface $node)
     {
         // check that the body does not contain non-empty output nodes
         if (
@@ -320,14 +368,14 @@ class Twig_Parser
             (!$node instanceof Twig_Node_Text && !$node instanceof Twig_Node_BlockReference && $node instanceof Twig_NodeOutputInterface)
         ) {
             if (false !== strpos((string) $node, chr(0xEF).chr(0xBB).chr(0xBF))) {
-                throw new Twig_Error_Syntax('A template that extends another one cannot start with a byte order mark (BOM); it must be removed.', $node->getTemplateLine(), $this->stream->getSourceContext());
+                throw new Twig_Error_Syntax('A template that extends another one cannot have a body but a byte order mark (BOM) has been detected; it must be removed.', $node->getLine(), $this->getFilename());
             }
 
-            throw new Twig_Error_Syntax('A template that extends another one cannot include contents outside Twig blocks. Did you forget to put the contents inside a {% block %} tag?', $node->getTemplateLine(), $this->stream->getSourceContext());
+            throw new Twig_Error_Syntax('A template that extends another one cannot have a body.', $node->getLine(), $this->getFilename());
         }
 
-        // bypass nodes that will "capture" the output
-        if ($node instanceof Twig_NodeCaptureInterface) {
+        // bypass "set" nodes as they "capture" the output
+        if ($node instanceof Twig_Node_Set) {
             return $node;
         }
 
@@ -344,7 +392,3 @@ class Twig_Parser
         return $node;
     }
 }
-
-class_alias('Twig_Parser', 'Twig\Parser', false);
-class_exists('Twig_Node');
-class_exists('Twig_TokenStream');
