@@ -6,6 +6,11 @@
  * PHP version 5.4
  */
 
+// Remove if needed
+error_reporting(E_ALL);
+ini_set('display_errors', TRUE);
+ini_set('display_startup_errors', TRUE);
+
 /**
  * Twig
  */
