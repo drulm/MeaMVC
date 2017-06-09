@@ -12,9 +12,14 @@ ini_set('display_errors', TRUE);
 ini_set('display_startup_errors', TRUE);
 
 /**
+ * Composer
+ */
+require '../vendor/autoload.php';
+
+/**
  * Twig
  */
-require_once dirname(__DIR__) . '/vendor/twig/twig/lib/Twig/Autoloader.php';
+//require_once dirname(__DIR__) . '/vendor/twig/twig/lib/Twig/Autoloader.php';
 Twig_Autoloader::register();
 
 
