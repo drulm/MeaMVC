@@ -16,25 +16,18 @@ ini_set('display_startup_errors', TRUE);
  */
 require '../vendor/autoload.php';
 
+
 /**
  * Twig
  */
-//require_once dirname(__DIR__) . '/vendor/twig/twig/lib/Twig/Autoloader.php';
 Twig_Autoloader::register();
 
 
 /**
- * Old Autoloader
+ * Error and Exception handling
  */
-/*spl_autoload_register(function ($class) {
-    $root = dirname(__DIR__);   // get the parent directory
-    $file = $root . '/' . str_replace('\\', '/', $class) . '.php';
-    if (is_readable($file)) {
-        require $root . '/' . str_replace('\\', '/', $class) . '.php';
-    }
-});
- * 
- */
+set_error_handler('Core\Error::errorHandler');
+set_exception_handler('Core\Error::exceptionHandler');
 
 
 /**
