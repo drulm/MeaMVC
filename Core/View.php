@@ -5,7 +5,7 @@ namespace Core;
 /**
  * View
  *
- * PHP version 5.4
+ * PHP version 7.0
  */
 class View
 {
@@ -22,12 +22,12 @@ class View
     {
         extract($args, EXTR_SKIP);
 
-        $file = "../App/Views/$view";  // relative to Core directory
+        $file = dirname(__DIR__) . "/App/Views/$view";  // relative to Core directory
 
         if (is_readable($file)) {
             require $file;
         } else {
-            echo "$file not found";
+            throw new \Exception("$file not found");
         }
     }
 
@@ -44,7 +44,7 @@ class View
         static $twig = null;
 
         if ($twig === null) {
-            $loader = new \Twig_Loader_Filesystem('../App/Views');
+            $loader = new \Twig_Loader_Filesystem(dirname(__DIR__) . '/App/Views');
             $twig = new \Twig_Environment($loader);
         }
 
